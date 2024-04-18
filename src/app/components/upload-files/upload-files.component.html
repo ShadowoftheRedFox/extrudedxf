@@ -1,0 +1,21 @@
+@if (!rendererService.import) {
+<div id="upload">
+  <div class="card">
+    <h2>Importer un fichier machine</h2>
+  </div>
+
+  <div class="card">
+    <label for="uploadObject" class="file-label"
+      >Cliquer ici pour importer un objet 3D</label
+    >
+    <input
+      #uploadObject
+      id="uploadObject"
+      class="hidden"
+      type="file"
+      accept=".gltf,.stl,.obj, .glb"
+      (change)="handle3DObjectUpload(uploadObject)"
+    />
+  </div>
+</div>
+}

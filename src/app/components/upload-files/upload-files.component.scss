@@ -1,0 +1,31 @@
+#upload{
+    position: absolute;
+    height: 20%;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    left: 0;
+    right: 0;
+    margin: auto;
+    top: 0;
+    bottom: 0;
+    gap: 20px;
+
+    .card{
+
+        cursor: pointer;
+        border: dashed 5px white;
+        width: 20%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+        border-radius: 20px;
+        background: rgba(192, 192, 192, 0.2509803922);
+        color: white;
+        font-size: large;
+    }
+}

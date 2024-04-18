@@ -1,0 +1,11 @@
+<div class="absolute right-0 top-0 cursor-pointer bg-red-300 p-3 rounded">
+  <label for="uploadBackgroundImage" class="file-label">Image de fond</label>
+  <input
+    #uploadBackgroundImage
+    id="uploadBackgroundImage"
+    class="hidden"
+    type="file"
+    accept=".png, .jpeg, .jpg"
+    (change)="onUploadBackgroundImage(uploadBackgroundImage)"
+  />
+</div>
