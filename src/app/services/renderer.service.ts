@@ -18,4 +18,23 @@ export class RendererService {
 
   import: any;
   backgroundImage: any;
+
+  width = window.innerWidth;
+  height = window.innerHeight;
+
+  resizeRenderer(width?: number, height?: number) {
+    // Mettez à jour la taille du renderer
+    if (!width) {
+      width = this.width;
+    }
+    if (!height) {
+      height = this.height;
+    }
+
+    this.renderer.setSize(width, height);
+
+    // Mettez à jour l'aspect ratio de la caméra
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+  }
 }

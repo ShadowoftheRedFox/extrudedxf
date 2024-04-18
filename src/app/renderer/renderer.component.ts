@@ -18,11 +18,13 @@ import {
   Color,
   DirectionalLight,
   DoubleSide,
+  Fog,
   GridHelper,
   Group,
   Mesh,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  Object3D,
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -90,16 +92,16 @@ export class RendererComponent implements AfterViewInit {
     this.renderer.toneMappingExposure = 2.3;
 
     // Création d'une lumière
-    const ambientLight = new AmbientLight(0xffffff, 0.3);
+    const ambientLight = new AmbientLight(0xffffff, 1);
     this.scene.add(ambientLight);
 
     // Création d'une lumière directionnelle
-    const directionalLight = new DirectionalLight(0xffffff, 0.5);
+    const directionalLight = new DirectionalLight(0xffffff, 1);
     directionalLight.position.set(1, 1, 1); // positionne la lumière au-dessus de la scène
     directionalLight.castShadow = true;
     this.scene.add(directionalLight);
 
-    this.scene.background = new Color(0x454545);
+    // this.scene.background = new Color(0x454545);
 
     // Création d'un gestionnaire de chargement de textures
     const textureLoader = new TextureLoader();
@@ -119,7 +121,6 @@ export class RendererComponent implements AfterViewInit {
     // Crée un matériau de base pour le sol (ou utilise le matériau existant)
     const groundMaterial = new MeshStandardMaterial({
       map: texture,
-      side: DoubleSide,
       transparent: true,
     });
 
@@ -136,6 +137,7 @@ export class RendererComponent implements AfterViewInit {
     // Ajout du sol à la scène
     this.scene.add(groundGroup);
     this.scene.add(this.renderGroup);
+    this.scene.fog = new Fog(0x454545, 1, 20);
   }
 
   animate() {
@@ -148,7 +150,7 @@ export class RendererComponent implements AfterViewInit {
     this.controls.update();
   }
 
-  grid = new GridHelper(50, 50, new Color(0x0000ff));
+  grid = new GridHelper(50, 50, new Color(0xffffff));
 
   preserveControlsTarget() {
     if (this.renderGroup && !this.service.backgroundImage) {
@@ -171,11 +173,8 @@ export class RendererComponent implements AfterViewInit {
     // Mettez à jour la taille du renderer
     const width = window.innerWidth;
     const height = window.innerHeight;
-    this.renderer.setSize(width, height);
 
-    // Mettez à jour l'aspect ratio de la caméra
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    this.service.resizeRenderer(width, height);
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -215,6 +214,14 @@ export class RendererComponent implements AfterViewInit {
       this.renderGroup.position.x += 0.05;
     } else if (event.key === 'h' || event.key === 'H') {
       this.service.import.visible = !this.service.import.visible;
+    } else if (event.key === 'w' || event.key === 'W') {
+      (this.service.import as Object3D).traverse((el) => {
+        if (el instanceof Mesh) {
+          el.material.wireframe = !el.material.wireframe;
+        }
+      });
+    } else if (event.key === 'p' || event.key === 'P') {
+      this.grid.visible = !this.grid.visible;
     }
 
     this.controls.update();

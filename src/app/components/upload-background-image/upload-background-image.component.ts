@@ -22,6 +22,30 @@ export class UploadBackgroundImageComponent {
     const reader = new FileReader();
 
     reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        const imageAspectRatio = img.width / img.height;
+        const viewportAspectRatio = viewportWidth / viewportHeight;
+
+        let newWidth, newHeight;
+
+        if (imageAspectRatio > viewportAspectRatio) {
+          newWidth = viewportWidth;
+          newHeight = newWidth / imageAspectRatio;
+        } else {
+          newHeight = viewportHeight;
+          newWidth = newHeight * imageAspectRatio;
+        }
+
+        this.rendererService.resizeRenderer(newWidth, newHeight);
+        console.log("Nouvelle largeur de l'image :", newWidth);
+        console.log("Nouvelle hauteur de l'image :", newHeight);
+      };
+      img.src = event.target?.result as string;
+
       const dataUrl = event.target?.result;
       const texture = this.textureLoader.load(dataUrl as string, () => {
         this.rendererService.backgroundImage = texture;
