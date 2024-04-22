@@ -9,20 +9,16 @@ import {
   inject,
 } from '@angular/core';
 import { MatDrawer } from '@angular/material/sidenav';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { RendererService } from '../services/renderer.service';
+import { RouterModule } from '@angular/router';
 import {
   AmbientLight,
   Box3,
-  BoxGeometry,
   Color,
   DirectionalLight,
-  DoubleSide,
   Fog,
   GridHelper,
   Group,
   Mesh,
-  MeshPhysicalMaterial,
   MeshStandardMaterial,
   Object3D,
   PCFShadowMap,
@@ -35,12 +31,14 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three';
-import { RouterModule } from '@angular/router';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { RendererService } from '../services/renderer.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'ft-renderer',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './renderer.component.html',
   styleUrl: './renderer.component.scss',
 })
@@ -52,6 +50,7 @@ export class RendererComponent implements AfterViewInit {
 
   constructor(private ngZone: NgZone) {}
 
+  stats: Map<string, string> = this.service.stats;
   cube!: Mesh;
 
   ngAfterViewInit(): void {
@@ -143,6 +142,7 @@ export class RendererComponent implements AfterViewInit {
   animate() {
     this.ngZone.runOutsideAngular(() => {
       this.preserveControlsTarget();
+      this.stats = this.service.stats;
       requestAnimationFrame(() => this.animate());
     });
 
@@ -168,8 +168,16 @@ export class RendererComponent implements AfterViewInit {
     }
   }
 
+  onDebug(){
+    
+  }
+
   @HostListener('window:resize')
   onWindowResize() {
+    if (this.service.backgroundImage) {
+      return;
+    }
+
     // Mettez à jour la taille du renderer
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -180,16 +188,20 @@ export class RendererComponent implements AfterViewInit {
   @HostListener('document:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     // Gérer les touches de flèche haut et bas
-    if (event.key === 'ArrowUp') {
-      this.controls.target.y -= 0.05;
-      this.controls.update();
-    } else if (event.key === 'ArrowDown') {
-      this.controls.target.y += 0.05;
-    } else if (event.key === 'ArrowRight') {
-      this.camera.fov += 1;
-    } else if (event.key === 'ArrowLeft') {
-      this.camera.fov -= 1;
-    } else if (event.key === 'Escape') {
+    if (1 != 1) {
+    }
+    // else if (event.key === 'ArrowUp') {
+    //   this.controls.target.y -= 0.05;
+    //   this.controls.update();
+    // }
+    // else if (event.key === 'ArrowDown') {
+    //   this.controls.target.y += 0.05;
+    // } else if (event.key === 'ArrowRight') {
+    //   this.camera.fov += 1;
+    // } else if (event.key === 'ArrowLeft') {
+    //   this.camera.fov -= 1;
+    // }
+    else if (event.key === 'Escape') {
       this.service.backgroundImage = null;
       this.scene.background = null;
     } else if (event.key === 'z' || event.key === 'Z') {

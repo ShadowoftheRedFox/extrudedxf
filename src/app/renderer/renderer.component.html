@@ -1,1 +1,42 @@
-<section id="rendererContainer" #rendererContainer></section>
+<section id="rendererContainer" #rendererContainer>
+  <div class="bg-cyan-200 stats absolute m-4 p-4 flex flex-col gap-2">
+    <input *ngIf="camera" type="number" [(ngModel)]="camera.fov" />
+    <input
+      *ngIf="camera"
+      step="0.01"
+      type="number"
+      [(ngModel)]="camera.position.x"
+    />
+    <input
+      *ngIf="camera"
+      step="0.01"
+      type="number"
+      [(ngModel)]="camera.position.y"
+    />
+    <input
+      *ngIf="camera"
+      step="0.01"
+      type="number"
+      [(ngModel)]="camera.position.z"
+    />
+
+    <input
+      *ngIf="camera"
+      step="0.01"
+      type="number"
+      [(ngModel)]="camera.rotation.x"
+    />
+    <input
+      *ngIf="camera"
+      step="0.01"
+      type="number"
+      [(ngModel)]="camera.rotation.y"
+    />
+    <input
+      *ngIf="camera"
+      step="0.01"
+      type="number"
+      [(ngModel)]="camera.rotation.z"
+    />
+  </div>
+</section>

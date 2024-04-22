@@ -37,4 +37,16 @@ export class RendererService {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
+
+  get stats(): Map<string, string> {
+    const stats = new Map();
+
+    stats.set('FOV', this.camera?.fov);
+    stats.set(
+      'Camera position',
+      `${this.camera?.position.x}, ${this.camera?.position.y}, ${this.camera?.position.z}`
+    );
+
+    return stats;
+  }
 }
