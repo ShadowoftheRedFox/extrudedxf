@@ -3,6 +3,7 @@ import { UploadFilesComponent } from '../../components/upload-files/upload-files
 import { RendererComponent } from '../../renderer/renderer.component';
 import { UploadBackgroundImageComponent } from '../../components/upload-background-image/upload-background-image.component';
 import { RendererService } from '../../services/renderer.service';
+import { ParamMenuComponent } from '../../components/param-menu/param-menu.component';
 
 @Component({
   selector: 'ft-home',
@@ -11,6 +12,7 @@ import { RendererService } from '../../services/renderer.service';
     RendererComponent,
     UploadFilesComponent,
     UploadBackgroundImageComponent,
+    ParamMenuComponent
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',

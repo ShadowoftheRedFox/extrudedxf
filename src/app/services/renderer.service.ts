@@ -1,6 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Scene, PerspectiveCamera, WebGLRenderer, Mesh, Group } from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { Scene, PerspectiveCamera, WebGLRenderer, Mesh, Group, Object3D, Object3DEventMap, Line, Box3Helper } from 'three';
+
+export interface LignePerspective {
+  id: number,
+  ligne: Line;
+  pointA: Mesh;
+  pointB: Mesh;
+  box?: Box3Helper;
+  group: Object3D
+  axe: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -8,14 +17,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 export class RendererService {
   scene!: Scene;
   camera!: PerspectiveCamera;
-  controls!: OrbitControls;
   renderer!: WebGLRenderer;
   groundMesh!: Mesh;
 
+  perspectiveLines: LignePerspective[] = [];
+
   renderGroup: Group = new Group();
 
-  constructor() {}
+  constructor() { }
 
-  import: any;
+  import!: Group<Object3DEventMap>;
   backgroundImage: any;
 }

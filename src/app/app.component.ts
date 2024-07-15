@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import {
+  AfterContentChecked,
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   NgZone,
@@ -24,6 +26,9 @@ import { MatButtonModule } from '@angular/material/button';
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
-export class AppComponent {
-  constructor() {}
+export class AppComponent implements AfterContentChecked {
+  constructor(private cdref: ChangeDetectorRef) { }
+  ngAfterContentChecked(): void {
+    this.cdref.detectChanges()
+  }
 }

@@ -1,21 +1,14 @@
 @if (!rendererService.import) {
 <div id="upload">
-  <div class="card">
+  <div class="card" style="cursor: not-allowed;">
     <h2>Importer un fichier machine</h2>
+    <h2>Arrive bientôt</h2>
   </div>
 
-  <div class="card">
-    <label for="uploadObject" class="file-label"
-      >Cliquer ici pour importer un objet 3D</label
-    >
-    <input
-      #uploadObject
-      id="uploadObject"
-      class="hidden"
-      type="file"
-      accept=".gltf,.stl,.obj, .glb"
-      (change)="handle3DObjectUpload(uploadObject)"
-    />
-  </div>
+  <label for="uploadObject" class="card">
+    <p class="file-label">Cliquer ici pour importer un objet 3D</p>
+    <input #uploadObject id="uploadObject" class="hidden" type="file" accept=".gltf,.stl,.obj, .glb"
+      (change)="handle3DObjectUpload(uploadObject)" />
+  </label>
 </div>
 }

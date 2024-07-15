@@ -1,0 +1,84 @@
+<div class="param absolute right-0 top-0 cursor-pointer bg-white bg-opacity-50 p-3 rounded" id="drag-menu">
+  <p id="drag-menu-header">Paramètres</p>
+  <details *ngIf="camera">
+    <summary>Caméra</summary>
+    <div>
+      <p>Position</p>
+      <div>
+        <label for="camx">x</label>
+        <input type="number" name="camx" id="camx" [value]="camera.position.x" (change)="onChange('camx', $event)">
+        <label for="camy">y</label>
+        <input type="number" name="camy" id="camy" [value]="camera.position.y" (change)="onChange('camy', $event)">
+        <label for="camz">z</label>
+        <input type="number" name="camz" id="camz" [value]="camera.position.z" (change)="onChange('camz', $event)">
+      </div>
+      <p>Rotation</p>
+      <div>
+        <label for="camrx">x</label>
+        <input type="number" name="camrx" id="camrx" [value]="camera.rotation.x" (change)="onChange('camrx', $event)"
+          value="0" step="0.1" inputmode="numeric">
+        <label for="camry">y</label>
+        <input type="number" name="camry" id="camry" [value]="camera.rotation.y" (change)="onChange('camry', $event)"
+          value="0" step="0.1" inputmode="numeric">
+        <label for="camrz">z</label>
+        <input type="number" name="camrz" id="camrz" [value]="camera.rotation.z" (change)="onChange('camrz', $event)"
+          value="0" step="0.1" inputmode="numeric">
+      </div>
+      <p>Quaternion</p>
+      <div>
+        <label for="camqx">x</label>
+        <input type="number" name="camqx" id="camqx" [value]="camera.quaternion.x" (change)="onChange('camqx', $event)"
+          step="0.1" inputmode="numeric">
+        <label for="camqy">y</label>
+        <input type="number" name="camqy" id="camqy" [value]="camera.quaternion.y" (change)="onChange('camqy', $event)"
+          step="0.1" inputmode="numeric">
+        <label for="camqz">z</label>
+        <input type="number" name="camqz" id="camqz" [value]="camera.quaternion.z" (change)="onChange('camqz', $event)"
+          step="0.1" inputmode="numeric">
+        <label for="camqw">w</label>
+        <input type="number" name="camqw" id="camqw" [value]="camera.quaternion.w" (change)="onChange('camqw', $event)"
+          step="0.1" inputmode="numeric">
+      </div>
+      <p>Look At</p>
+      <div>
+        <label for="lookx">x</label>
+        <input type="number" name="lookx" id="lookx" (change)="onChange('lookx', $event)" step="0.1" inputmode="numeric"
+          [value]="lookx">
+        <label for="looky">y</label>
+        <input type="number" name="looky" id="looky" (change)="onChange('looky', $event)" step="0.1" inputmode="numeric"
+          [value]="looky">
+        <label for="lookz">z</label>
+        <input type="number" name="lookz" id="lookz" (change)="onChange('lookz', $event)" step="0.1" inputmode="numeric"
+          [value]="lookz">
+        <label for="lookz">Live change</label>
+        <input type="checkbox" [checked]="liveChange" (change)="liveChange = !liveChange">
+        <button type="button" (click)="lookAtCam()">Look at</button>
+      </div>
+      <p>FOV</p>
+      <div>
+        <label for="lookx">FOV</label>
+        <input type="number" name="FOV" id="FOV" (change)="onChange('FOV', $event)" step="0.5" inputmode="numeric"
+          [value]="camera.fov">
+      </div>
+    </div>
+  </details>
+  <details *ngIf="scene" closed>
+    <summary>Scene</summary>
+    <div></div>
+  </details>
+  <details *ngIf="renderGroup" closed>
+    <summary>Objet</summary>
+    <div></div>
+  </details>
+  <details closed>
+    <summary>Autre</summary>
+    <div>
+      <p>Logs</p>
+      <div>
+        <label for="configVerbose">Verbose: </label>
+        <input type="checkbox" name="configVerbose" id="configVerbose" [checked]="config.verbose"
+          (change)="onChange('configVerbose', $event)">
+      </div>
+    </div>
+  </details>
+</div>

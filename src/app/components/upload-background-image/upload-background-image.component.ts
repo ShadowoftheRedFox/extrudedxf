@@ -26,6 +26,7 @@ export class UploadBackgroundImageComponent {
       const texture = this.textureLoader.load(dataUrl as string, () => {
         this.rendererService.backgroundImage = texture;
         this.rendererService.scene.background = texture;
+        this.rendererService.scene.backgroundIntensity = 0.5;
 
         this.draw_helper_renderGroup();
       });
