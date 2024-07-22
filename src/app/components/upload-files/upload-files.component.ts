@@ -19,12 +19,12 @@ export class UploadFilesComponent implements OnInit {
   ngOnInit(): void {
     if (this.configService.defaultContent.enabled) {
       const textureLoader = new TextureLoader();
-      const textureDefault = textureLoader.load(this.configService.defaultContent.background, () => {
-        // met l'image en fond
-        this.rendererService.backgroundImage = textureDefault;
-        this.rendererService.scene.background = textureDefault;
-        this.rendererService.scene.backgroundIntensity = 0.5;
-      });
+      // const textureDefault = textureLoader.load(this.configService.defaultContent.background, () => {
+      //   // met l'image en fond
+      //   this.rendererService.backgroundImage = textureDefault;
+      //   this.rendererService.scene.background = textureDefault;
+      //   this.rendererService.scene.backgroundIntensity = 0.5;
+      // });
       // ajoute l'objet
       fetch(this.configService.defaultContent.group).then(res => res.text().then(buff => {
         this.loader.parse(buff as string, '', (glb) => {
@@ -38,7 +38,7 @@ export class UploadFilesComponent implements OnInit {
           const box = new Box3().setFromObject(this.renderGroup);
           const camVect = new Vector3();
           box.getSize(camVect);
-          this.camera.lookAt(camVect.divideScalar(1).add(this.renderGroup.position));
+          // this.camera.lookAt(camVect.divideScalar(1).add(this.renderGroup.position));
 
           // Ajout de support/debug
           if (this.configService.defaultContent.helperBox) {
@@ -47,7 +47,7 @@ export class UploadFilesComponent implements OnInit {
               new Color(0xff0000)
             );
             boxHelper.name = "boxHelper";
-            this.renderGroup.add(boxHelper)
+            // this.renderGroup.add(boxHelper)
           }
         });
       }))
