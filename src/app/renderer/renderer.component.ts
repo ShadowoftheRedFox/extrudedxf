@@ -41,6 +41,7 @@ import {
   Points,
   PointsMaterial,
   Plane,
+  Matrix4,
 } from 'three';
 import { RouterModule } from '@angular/router';
 import { Actions, ConfigService } from '../services/config.service';
@@ -79,7 +80,10 @@ export class RendererComponent implements AfterViewInit {
     lengthWorld: number;
     lengthScreen: number;
     normal: Vector3;
+    lc: number
   } | null = null;
+
+  perspectiveMatrice = new Matrix4();
 
   ngAfterViewInit(): void {
     this.initThree();
@@ -166,6 +170,7 @@ export class RendererComponent implements AfterViewInit {
 
     console.log("Scene: ", this.scene);
     console.log("PL: ", this.perspectiveLines);
+    console.log("Matrice: ", this.perspectiveMatrice);
   }
 
   animate() {
@@ -176,7 +181,7 @@ export class RendererComponent implements AfterViewInit {
 
     if (this.pergolaNeedUpdate && this.pergola != null) {
       this.pergolaNeedUpdate = false;
-      this.changePositionObjet();
+      this.calcPositionObjet();
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -333,38 +338,12 @@ export class RendererComponent implements AfterViewInit {
         break;
     }
 
-    if (this.config.isPressed(event, true, ["control"], ['arrowup'])) {
-    } else if (this.config.isPressed(event, true, ["control"], ['arrowdown'])) {
-    } else if (this.config.isPressed(event, true, ["control"], ['arrowright'])) {
-      this.camera.fov += 1;
-    } else if (this.config.isPressed(event, true, ["control"], ['arrowleft'])) {
-      this.camera.fov -= 1;
-    } else if (this.config.isPressed(event, true, ["control"], ['escape'])) {
+    if (this.config.isPressed(event, true, ["control"], ['escape'])) {
       this.service.backgroundImage = null;
       this.scene.background = null;
       this.groundMesh.visible = true;
       this.scene.remove(this.grid);
       this.scene.background = new Color(0x454545);
-    } else if (this.config.isPressed(event, true, ["control"], ["z"])) {
-      this.renderGroup.rotation.x += 0.01;
-    } else if (this.config.isPressed(event, true, ["control"], ["q"])) {
-      this.renderGroup.rotation.z += 0.01;
-    } else if (this.config.isPressed(event, true, ["control"], ["s"])) {
-      this.renderGroup.rotation.x -= 0.01;
-    } else if (this.config.isPressed(event, true, ["control"], ["d"])) {
-      this.renderGroup.rotation.z -= 0.01;
-    } else if (this.config.isPressed(event, true, ["control"], ["t"])) {
-      this.renderGroup.rotation.y += 0.01;
-    } else if (this.config.isPressed(event, true, ["control"], ["r"])) {
-      this.renderGroup.rotation.y -= 0.01;
-    } else if (this.config.isPressed(event, true, ["control"], ["o"])) {
-      this.renderGroup.position.z -= 0.05;
-    } else if (this.config.isPressed(event, true, ["control"], ["l"])) {
-      this.renderGroup.position.z += 0.05;
-    } else if (this.config.isPressed(event, true, ["control"], ["k"])) {
-      this.renderGroup.position.x -= 0.05;
-    } else if (this.config.isPressed(event, true, ["control"], ["m"])) {
-      this.renderGroup.position.x += 0.05;
     } else if (this.config.isPressed(event, true, ["control"], ["h"])) {
       this.service.import.visible = !this.service.import.visible;
     }
@@ -580,12 +559,12 @@ export class RendererComponent implements AfterViewInit {
   // à partir de là, on peut calculer le fov, zfar et znear de la camera utilisée dans la photo
   // pour le reproduire dans la scene, ne reste plus qu'à bouger l'objet
   // voir: https://stackoverflow.com/questions/53289330/transformation-of-3d-objects-related-to-vanishing-points-and-horizon-line
-  changePositionObjet() {
+  calcPositionObjet() {
     const height = this.rendererContainer.nativeElement.clientHeight;
     const width = this.rendererContainer.nativeElement.clientWidth;
     // on récupère les deux dimensions de perspective
-    const PLd = this.perspectiveLines.filter(pl => { return pl.axe == "profondeur" });
-    const PLg = this.perspectiveLines.filter(pl => { return pl.axe == "longueur" });
+    let PLd = this.perspectiveLines.filter(pl => { return pl.axe == "profondeur" });
+    let PLg = this.perspectiveLines.filter(pl => { return pl.axe == "longueur" });
     const PLh = this.perspectiveLines.filter(pl => { return pl.axe == "hauteur" });
     if (PLd.length !== 2 || PLg.length !== 2 || PLh.length !== 1) {
       throw new Error(`les dimensions de perspective ne sont pas 2! PLd ${PLd.length} , PLg ${PLg.length} , PLh ${PLh.length}`);
@@ -595,36 +574,55 @@ export class RendererComponent implements AfterViewInit {
     //    du genre, on ne bouge qu'un point à la fois, pas recalculer tout
 
     // calcule la direction des lignes
-    const dir_PLd_0 = new Vector3().subVectors(PLd[0].pointB.position, PLd[0].pointA.position).normalize();
-    const dir_PLd_1 = new Vector3().subVectors(PLd[1].pointB.position, PLd[1].pointA.position).normalize();
-    const dir_PLg_0 = new Vector3().subVectors(PLg[0].pointB.position, PLg[0].pointA.position).normalize();
-    const dir_PLg_1 = new Vector3().subVectors(PLg[1].pointB.position, PLg[1].pointA.position).normalize();
+    let dir_PLd_0 = new Vector3().subVectors(PLd[0].pointB.position, PLd[0].pointA.position).normalize();
+    let dir_PLd_1 = new Vector3().subVectors(PLd[1].pointB.position, PLd[1].pointA.position).normalize();
+    let dir_PLg_0 = new Vector3().subVectors(PLg[0].pointB.position, PLg[0].pointA.position).normalize();
+    let dir_PLg_1 = new Vector3().subVectors(PLg[1].pointB.position, PLg[1].pointA.position).normalize();
     const dirh = new Vector3().subVectors(PLh[0].pointB.position, PLh[0].pointA.position).normalize();
 
     // calcule les deux points de fuite et récupère l'horizon
-    const PDFd = this.pointDeFuite(dir_PLd_0, dir_PLd_1, PLd[0].pointA.position, PLd[1].pointA.position);
-    const PDFg = this.pointDeFuite(dir_PLg_0, dir_PLg_1, PLg[0].pointA.position, PLg[1].pointA.position);
+    let PDFd = this.pointDeFuite(dir_PLd_0, dir_PLd_1, PLd[0].pointA.position, PLd[1].pointA.position);
+    let PDFg = this.pointDeFuite(dir_PLg_0, dir_PLg_1, PLg[0].pointA.position, PLg[1].pointA.position);
     // PDFd distance to PDFl, donc le point de départ est PDFl, sinon il faut prenre l'opposé de lengthWorld
     // lengthWorld est la longueur dans la scene (en ThreeJS unit), lengthScreen est la longueur sur l'écran (en pixel)
-    this.horizon = { dir: new Vector3().subVectors(PDFd, PDFg).normalize(), lengthWorld: PDFd.distanceTo(PDFg), lengthScreen: 1, normal: new Vector3() };
+    this.horizon = { dir: new Vector3().subVectors(PDFd, PDFg).normalize(), lengthWorld: PDFd.distanceTo(PDFg), lengthScreen: 1, normal: new Vector3(), lc: 0 };
 
     // crée les quadrilataire des PL, en organisant les points dans le sens contraire des aiguilles d'un montre
     // le premier point est celui en haut à gauche
     // tri des points
-    const QuadCornersD = this.sortCCWPoints([PLd[0].pointA, PLd[0].pointB, PLd[1].pointA, PLd[1].pointB]);
-    const QuadCornersG = this.sortCCWPoints([PLg[0].pointA, PLg[0].pointB, PLg[1].pointA, PLg[1].pointB]);
+    let QuadCornersD = this.sortCCWPoints([PLd[0].pointA, PLd[0].pointB, PLd[1].pointA, PLd[1].pointB]);
+    let QuadCornersG = this.sortCCWPoints([PLg[0].pointA, PLg[0].pointB, PLg[1].pointA, PLg[1].pointB]);
 
     // on vas créer nos trapèzes à partir de ces points
     // vu qu'ils doivent avoir une direction verticale commune, il faut les passer en paire
-    const [TrapD, TrapG] = this.getTrapFromQuad(QuadCornersD, QuadCornersG);
+    let [TrapD, TrapG] = this.getTrapFromQuad(QuadCornersD, QuadCornersG);
 
     // vu qu'on suppose que nos zones délimités sont rectangulaire
     // cela implique que nos trapèzes non projetés sont aussi des rectangles
     // donc nous allons récupérer le centre des trapèzes,
     // et le centre du segment si les deux trapèzes se touchaient
-    const CentreTrapD = this.getCenterFromTrap(TrapD);
-    const CentreTrapG = this.getCenterFromTrap(TrapG);
+    let CentreTrapD = this.getCenterFromTrap(TrapD);
+    let CentreTrapG = this.getCenterFromTrap(TrapG);
     const CentreSegment = this.getCenterSegment(TrapD, TrapG);
+    // on s'assure que TrapD soit bien à doite, et que TrapG soit bien à gauche
+    if (CentreTrapD.x < CentreTrapG.x) {
+      // on inverse tout les objets correspondants
+      let temp: any;
+      temp = this.swap(PLd, PLg);
+      PLd = temp[0]; PLg = temp[1];
+      temp = this.swap(dir_PLd_0, dir_PLg_0);
+      dir_PLd_0 = temp[0]; dir_PLg_0 = temp[1];
+      temp = this.swap(dir_PLd_1, dir_PLg_1);
+      dir_PLd_1 = temp[0]; dir_PLg_1 = temp[1];
+      temp = this.swap(PDFd, PDFg);
+      PDFd = temp[0]; PDFg = temp[1];
+      temp = this.swap(QuadCornersD, QuadCornersG);
+      QuadCornersD = temp[0]; QuadCornersG = temp[1];
+      temp = this.swap(TrapD, TrapG);
+      TrapD = temp[0]; TrapG = temp[1];
+      temp = this.swap(CentreTrapD, CentreTrapG);
+      CentreTrapD = temp[0]; CentreTrapG = temp[1];
+    }
 
     // récupère un ratio mètre/pixel pour faire les conversions
     // on prend la position, qu'on normalize comme la sourie, et on repositionne
@@ -652,14 +650,41 @@ export class RendererComponent implements AfterViewInit {
     // calcul du zfar
     const zfar = 1000 * znear;
 
-    // application à la caméra
-    // TODO mettre les points sur une autre caméra pour pas qu'ils soint affecté pdt les changements de FOV
-    if (FOV > 0 && FOV < 180) {
-      // console.log(`FOV: ${FOV.toFixed(2)}\nHor: ${this.horizon.lengthScreen.toFixed(2)}\nNear: ${znear.toFixed(2)}`);
-      // this.camera.fov = FOV;
-      // this.camera.far = zfar;
-      // this.camera.near = znear;
-      // this.camera.updateProjectionMatrix();
+    // récupère le ratio de profondeur, avec pour étalon la ligne centrale lc
+    const ZRatios = this.getZRatio(TrapD, TrapG);
+    // le produit scalaire entre deux directions:
+    // - centre quadG à centre Arrete milieu
+    // - centre quadD à centre Arrete milieu
+    // devrait être égale à 0 (sur StackOverflow: dot(pnt1-pnt0,pnt2-pnt0)=0)
+    // on calcule donc z0, z1, z2 et l
+    // après calcul, l = sqrt(((x1-x0)(x2-x0)+(y1-y0)(y2-y0))/(znear*znear*(l1*l2 + l0*(l1+l2+l0))))
+    // maintenant qu'on à l, on peut calculer z0, z1 et z2
+    const l = Math.sqrt(
+      ((CentreTrapG.x - CentreSegment.x) * (CentreTrapD.x - CentreSegment.x) +
+        (CentreTrapG.y - CentreSegment.y) * (CentreTrapD.y - CentreSegment.y)) /
+      (znear * znear * (ZRatios.ld * ZRatios.lg - ZRatios.lc * (ZRatios.ld + ZRatios.lg + ZRatios.lc)))
+    );
+    if (!isNaN(l)) {
+      // profondeur au milieu du segment central
+      const zc = znear * ZRatios.lc / l;
+      // profondeur au milieu du segment de gauche
+      const zg = znear * ZRatios.lg / l;
+      // profondeur au milieu du segment de droite
+      const zd = znear * ZRatios.ld / l;
+
+      // Enfin, avec toutes ces infos, on peut faire une matrice de transformation qui va mettre un objet dans la perspective
+      this.perspectiveMatrice = new Matrix4(
+        CentreTrapG.x, CentreSegment.x, CentreTrapD.x, 0,
+        CentreTrapG.y, CentreSegment.y, CentreTrapD.y, 0,
+        zg/*       */, zc/*         */, zd/*       */, 0,
+        1/*        */, 1/*          */, 1/*        */, 1
+      );
+      // Position Objet * matrice = resultat
+      // Finalement,  Position Object x = resultat.x / resultat.z
+      //              Position Object y = resultat.y / resultat.z
+      // sur l'écran, <-1, 1>
+      this.renderGroup.scale.set(zg, zc, zd);
+      this.changePositionObjet(this.perspectiveMatrice);
     }
 
     if (this.defaultContent.helperBox) {
@@ -690,13 +715,23 @@ export class RendererComponent implements AfterViewInit {
       (QuadCornersG[3].material as MeshBasicMaterial).color.set("yellow");
 
       // affiche la surface que les quad couvrent
-      this.plane(TrapD, "planeD");
-      this.plane(TrapG, "planeG");
+      this.plane(TrapD, "planeD"); // rouge
+      this.plane(TrapG, "planeG"); // bleu
 
       // affiche le centre des quads
       this.drawPoint(CentreTrapD, { unique: true, id: 0xffff00 });
       this.drawPoint(CentreTrapG, { unique: true, id: 0x00ffff });
     }
+  }
+
+  changePositionObjet(matrice: Matrix4) {
+    // if (!this.renderGroup) return;
+    // console.table([matrice.elements.slice(0, 4), matrice.elements.slice(4, 8), matrice.elements.slice(8, 12), matrice.elements.slice(12, 16)])
+    // this.renderGroup.scale.set(1, 2, 1);
+    // this.renderGroup.position.set(0, 0, 0);
+    // this.renderGroup.scale.set(1, 1, 1);
+    // const center = new Vector3();
+    // this.drawArrow(this.renderGroup.position, center, { unique: true, id: 0xff2222, arrow: false, length: center.distanceTo(this.renderGroup.position) });
   }
 
   plane(QuadCorners: Vector3[], name: "planeD" | "planeG" = "planeD") {
@@ -718,7 +753,30 @@ export class RendererComponent implements AfterViewInit {
     }
   }
 
+  getZRatio(quadD: Vector3[], quadG: Vector3[]): { lg: number, lc: number, ld: number } {
+    const res = { lg: 0, lc: 0, ld: 0 };
+    res.lg = quadG[0].distanceTo(quadG[1]);
+    res.ld = quadD[2].distanceTo(quadD[3]);
+    if (this.horizon) {
+      res.lc = this.horizon.lc
+    }
+
+    // console.log(res);
+
+    return res;
+  }
+
+  swap<T>(item1: T, item2: T): [T, T] {
+    return [item2, item1];
+    // if (!item1 || !item2) return;
+    let temp: any;
+    temp = item1;
+    item1 = item2;
+    item2 = temp;
+  }
+
   sortCCWPoints<T extends Object3D>(points: T[]) {
+    // BUG peut se mélanger si les points sont trop éloignés les uns des autres
     const [a_, b_] = [new Vector3(), new Vector3()];
     // Find min max to get center
     // Sort from top to bottom
@@ -780,6 +838,10 @@ export class RendererComponent implements AfterViewInit {
     center.x = (pointHaut.x + pointBas.x) / 2;
     center.y = (pointHaut.y + pointBas.y) / 2;
 
+    if (this.horizon) {
+      this.horizon.lc = pointHaut.distanceTo(pointBas);
+    }
+
     if (this.defaultContent.helperBox) {
       this.drawPoint(center, { unique: true, id: 0x111111 });
       this.drawPoint(pointHaut, { unique: true, id: 0xff00db });
@@ -821,12 +883,13 @@ export class RendererComponent implements AfterViewInit {
     this.horizon.normal = horizonNormal;
     this.drawArrow(horizonNormal, new Vector3(), { unique: true, id: 0x000001, arrow: true, length: 5 });
 
-    // maintenant, on prend les points les plus à gauche et à droite, et on prend le point d'intersection avec la ligne opposé
+    // vecteurs directeurs des lignes correspondantes
     const ligne_hauteD = new Vector3().subVectors(quadD[0].position, quadD[3].position).normalize();
     const ligne_basseD = new Vector3().subVectors(quadD[1].position, quadD[2].position).normalize();
     const ligne_hauteG = new Vector3().subVectors(quadG[0].position, quadG[3].position).normalize();
     const ligne_basseG = new Vector3().subVectors(quadG[1].position, quadG[2].position).normalize();
 
+    // maintenant, on prend les points les plus à gauche et à droite, et on prend le point d'intersection avec la ligne opposé
     var PtG_quadD = { pt: quadD[0].position, id: 0 };
     var PtD_quadD = { pt: quadD[0].position, id: 0 };
     quadD.forEach((pt, id) => { if (pt.position.x < PtG_quadD.pt.x) { PtG_quadD = { pt: pt.position, id: id }; } });
