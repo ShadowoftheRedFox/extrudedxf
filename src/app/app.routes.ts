@@ -5,10 +5,14 @@ import { ArComponent } from './pages/ar/ar.component';
 export const routes: Routes = [
   {
     path: '',
-    component: HomeComponent
+    component: HomeComponent,
   },
   {
     path: 'ar',
-    component: ArComponent
+    component: ArComponent,
+  },
+  {
+    path: '**',
+    redirectTo: '',
   }
 ];
