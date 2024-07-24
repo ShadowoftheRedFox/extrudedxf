@@ -27,7 +27,9 @@ import { MatButtonModule } from '@angular/material/button';
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements AfterContentChecked {
-  constructor(private cdref: ChangeDetectorRef) { }
+  constructor(private cdref: ChangeDetectorRef) {
+    console.clear();
+  }
   ngAfterContentChecked(): void {
     this.cdref.detectChanges()
   }

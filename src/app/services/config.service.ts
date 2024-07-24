@@ -41,10 +41,7 @@ export class ConfigService {
   keyMap = new Map<string, boolean>();
   keyArray: string[] = [];
 
-  /*
-  Les méthodes ci dessous permettent de gérer des combinaisons d'entrés clavier
-  */
-
+  // #region clavier
   onKeyDown(ev: KeyboardEvent) {
     // remember this in map
     ev = ev || event; // to deal with IE
@@ -114,6 +111,7 @@ export class ConfigService {
       return Actions.Efface;
     return Actions.Rien;
   }
+  // #endregion clavier
 
   constructor() { }
 }
