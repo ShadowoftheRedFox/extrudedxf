@@ -15,10 +15,12 @@ A noter, pour faire court: AR = Augemnted reality = réalité augmenté
 
 # TODO
 
-- [ ] Prendre un évènement (pour this.ARContainer à null) quand le mode AR se termine/quitte, car si l'on redémarre le mode, pas sur que les boutons se ré affichent
+- [x] Prendre un évènement (pour this.ARContainer à null) quand le mode AR se termine/quitte, car si l'on redémarre le mode, pas sur que les boutons se ré affichent
 - [ ] Rotation centré sur le centre de l'objet et non un coin
-- [ ] Bouton plus grand en mode AR (avec surement un changement de style)
-- [ ] Styliser le bouton pour lancer l'AR (id = ARButton)
+- [x] Bouton plus grand en mode AR (avec surement un changement de style)
+- [x] Styliser le bouton pour lancer l'AR (id = ARButton)
+- [x] déplacement de la pergola avec le doigt si on la touche et glisse
+- [ ] lors de la selection pour le déplacement, faire une bounding box au lieu de la pergola elle meme
 
 # Implementation
 
@@ -39,7 +41,8 @@ Il y a cependant un bloc commennté, qui sont les boutons qui devraient s'affich
 
 ## TS
 
-Normallement tout est commenté sur le fichier lui-même.
+Normallement tout est commenté sur le fichier lui-même.  
+Documentation WebXR: https://developer.mozilla.org/fr/docs/Web/API/WebXR_Device_API  
 
 # Debug
 
@@ -69,19 +72,24 @@ Vous allez recevoir une notification/popup sur le téléphone demandant l'autori
 CLiquez authorisé pour cet appareil et revenez sur votre onglet à déboguer.  
 Sur l'ordinateur, le navigateur va détecter le téléphone et afficher les onglets ouverts. Cliquez sur "inspect" sur l'onglet de votre choix.  
 
-Maintenant, vous avez accès à la page du téélphone comme si elle était sur l'ordinateur. Vous pouvez modifier et intéragir de l'ordinateur, qui sera répliqué sur le téléphone.
+Maintenant, vous avez accès à la page du téélphone comme si elle était sur l'ordinateur. Vous pouvez modifier et intéragir de l'ordinateur, qui sera répliqué sur le téléphone.  
+Si vous ne voyez pas les éléments, essayez de re démarrer le téléphone et réesayez.
 
 # Ressources:
 
 ## Style des boutons AR
 ```css
+button#ARButton {
+  position: absolute !important;
+  bottom: calc(50% - 45px) !important;
+}
+
 .ar_overlay_button {
-  // évite de lancer des actions si on clique, ce qui arrete les lancés d'event
-  touch-action: none !important;
-  -ms-touch-action: none !important;
-  user-select: none;
-  -moz-user-select: none;
-  -webkit-user-select: none;
+  // empeche la selection des icône des boutons
+  user-select: none !important;
+  -moz-user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
 
   position: absolute !important;
   padding: 10px !important;

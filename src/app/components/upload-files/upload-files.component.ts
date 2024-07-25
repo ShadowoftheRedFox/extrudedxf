@@ -47,7 +47,7 @@ export class UploadFilesComponent implements OnInit {
               new Color(0xff0000)
             );
             boxHelper.name = "boxHelper";
-            // this.renderGroup.add(boxHelper)
+            // this.renderGroup.add(boxHelper);
           }
         });
       }))

@@ -28,54 +28,54 @@ import { MatIconModule } from '@angular/material/icon';
 export class ArRendererComponent implements AfterViewInit {
   @ViewChild('rendererContainer') rendererContainer!: ElementRef<HTMLElement>;
 
-  service = inject(RendererService);
-  config = inject(ConfigService);
+  service: RendererService = inject(RendererService);
+  config: ConfigService = inject(ConfigService);
 
   // container pour Three JS
   container!: HTMLElement;
   // container lors du mode AR
   ARContainer: HTMLDivElement | null = null;
 
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  scene = new THREE.Scene();
+  renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  scene: THREE.Scene = new THREE.Scene();
   camera!: THREE.PerspectiveCamera;
-  defaultLight = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  defaultLight: THREE.HemisphereLight = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
   // lumière AR qui émule dans la scene Three JS la lumière réelle ambiente
-  xrLight = new XREstimatedLight(this.renderer);
+  xrLight: XREstimatedLight = new XREstimatedLight(this.renderer);
   // le controller (une manette par exemple), ici, émule les interactions des touchés
-  controller = this.renderer.xr.getController(0);
+  controller: THREE.XRTargetRaySpace = this.renderer.xr.getController(0);
 
   // variables pour calculer la position réelle d'une surface réelle et avoir sa position (et rotation) dans la scene Three JS
   hitTestSource: XRHitTestSource | null = null;
-  hitTestSourceRequested = false;
+  hitTestSourceRequested: boolean = false;
 
   // affichage du point calculer avec les deux variables ci dessus
   reticule!: THREE.Mesh;
 
   // pour différencier un touché d'un maintient
-  moveCount = 0;
-  moving = false;
+  moveCount: number = 0;
+  moving: boolean = false;
   // à partir de combien d'événement "touché" est-ce que l'on considère que c'est un maintient
-  moveThreshold = 10;
+  moveThreshold: number = 10;
 
   // position du premier click sur l'écran
-  pointerStart = new THREE.Vector2();
+  pointerStart: THREE.Vector2 = new THREE.Vector2();
   // position du click le plus récent sur l'écran
-  pointerCurrent = new THREE.Vector2();
+  pointerCurrent: THREE.Vector2 = new THREE.Vector2();
   // direction entre le pointerStart et pointerCurrent
-  pointerDirection = new THREE.Vector2();
+  pointerDirection: THREE.Vector2 = new THREE.Vector2();
 
   // position de la caméra "réelle" dans la scene Three JS
   // on fera suivre ces propriété à la caméra de Three JS
   viewPos: XRViewerPose | undefined = undefined;
 
   // pour redimmensionner la pergola pors des tests
-  objectScale = 1; // taille réel
-  // objectScale = 0.08; // taille bureau
-  currentScale = this.objectScale;
+  // objectScale = 1; // taille réelle
+  objectScale: number = 0.08; // taille bureau
+  currentScale: number = this.objectScale;
 
   // un raycast utilisé pour tirer entre la caméra et un objet
-  raycast = new THREE.Raycaster();
+  raycast: THREE.Raycaster = new THREE.Raycaster();
 
   // intervalles pour les boutons en mode AR
   // car on a seulement le touchDown et touchUp
@@ -83,6 +83,17 @@ export class ArRendererComponent implements AfterViewInit {
   rotateRight: any = null;
   scaleDown: any = null;
   scaleUp: any = null;
+
+  // session AR en cours pour pouvoir la fermer à tout moment
+  ARSession: XRSession | null = null;
+  // la croix pour quitter la session ne fonctionne plus, donc met une écoute nous même
+  ARSVGListener: boolean = false;
+
+  // plan parallèle à l'écran réel dans Three JS
+  selectionPlane: THREE.Plane | null = null;
+  // si on a sélectionné l'objet
+  selection: boolean = false;
+  selectionPlaneHelper: THREE.PlaneHelper | null = null;
 
   constructor() { }
 
@@ -171,7 +182,11 @@ export class ArRendererComponent implements AfterViewInit {
     this.renderer.setAnimationLoop((timestamp: number, frame?: XRFrame) => {
       // affiche le context seulement en AR
       if (this.renderer.xr.isPresenting) {
-        if (frame && this.moveCount > 0) {
+        if (frame && !this.moving) {
+          // dans le cas où l'on veut arreter la session, retient la session
+          if (!this.ARSession) {
+            this.ARSession = frame.session;
+          }
           // récupère le point visé
           this.XRHitTest(this.renderer, frame,
             (hitPoseTransformed: Float32Array) => {
@@ -190,17 +205,48 @@ export class ArRendererComponent implements AfterViewInit {
         // récupère l'élément où s'affiche l'AR
         if (this.ARContainer == null) {
           const els = Array.from(document.body.children);
-          console.log(els[els.length - 1]);
+          // console.log(els[els.length - 1]);
           if (els.length) {
             this.ARContainer = els[els.length - 1] as HTMLDivElement;
             this.setupARButton();
           }
         }
 
+        // rajoute une écoute pour fermer la session
+        if (!this.ARSVGListener && this.ARContainer && this.ARContainer.getElementsByTagName("svg").length > 0 && this.ARSession) {
+          this.ARContainer.getElementsByTagName("svg")[0].addEventListener("click", (e) => {
+            this.AREnd();
+          });
+          this.ARSVGListener = true;
+        }
+
         // lance le rendu
         this.renderer.render(this.scene, this.camera);
+      } else {
+        // si on est pas en AR, alors on vois le bouton, qu'on stylise
+        //* ça spam fort ici, changer d'endroit?
+        this.customARButton();
       }
     });
+  }
+
+  // fonction qu'on appel quand on quitte avec la croix
+  AREnd() {
+    // remet à 0 les paramètres qui doivent l'être
+    this.ARSession?.end();
+    this.ARSession = null;
+    this.ARSVGListener = false;
+
+    document.body.style.touchAction = "auto";
+
+    clearInterval(this.rotateLeft);
+    this.rotateLeft = null;
+    clearInterval(this.rotateRight);
+    this.rotateRight = null;
+    clearInterval(this.scaleDown);
+    this.scaleDown = null;
+    clearInterval(this.scaleUp);
+    this.scaleUp = null;
   }
 
   // quand on détecte qu'on est en mode AR, ajoute les boutons à l'élément qui affiche l'AR
@@ -290,6 +336,78 @@ export class ArRendererComponent implements AfterViewInit {
     });
   }
 
+  customARButton() {
+    // il peut aussi s'afficher un message si le navigateur n'est pas compatible ou qu'on est pas en https
+    if (!('xr' in navigator)) {
+      const ARMessages = document.getElementsByTagName("a");
+      if (ARMessages.length > 0) {
+        let ARMessage = ARMessages[0];
+        let found = false;
+        Array.from(ARMessages).forEach(el => {
+          if (
+            !found &&
+            (
+              (el.innerHTML == "WEBXR NEEDS HTTPS" && el.href == document.location.href.replace(/^http:/, 'https:')) ||
+              (el.innerHTML == "WEBXR NOT AVAILABLE" && el.href == "https://immersiveweb.dev/")
+            )
+          ) {
+            ARMessage = el;
+            found = true;
+          }
+        })
+        if (found) {
+          ARMessage.style.position = "absolute !important";
+          ARMessage.style.bottom = "calc(50 % - 45px) !important";
+          ARMessage.style.left = `50%`
+          ARMessage.style.transform = `translate(-50%, -50%)`
+          ARMessage.style.fontSize = "1.2rem";
+          ARMessage.style.width = "";
+          ARMessage.style.color = "red";
+          ARMessage.style.borderColor = "red";
+          ARMessage.style.opacity = "1";
+          if (window.isSecureContext === false) {
+            ARMessage.innerHTML == "Vous devez être dans un environnement sécurisé pour utilisé la réalité augmentée"
+          } else {
+            ARMessage.innerHTML == "Votre navigateur n'est pas compatible avec la réalité augmentée"
+          }
+        }
+      }
+    }
+    // récupère le bouton AR dans le DOM
+    const ARButton = document.getElementById("ARButton");
+    if (!ARButton) return;
+    // change le style en fonction du contenu
+    // console.warn(ARButton.offsetWidth);
+    switch (ARButton.textContent) {
+      case 'START AR':
+        ARButton.textContent = "Débuter la réalité augmentée";
+        ARButton.style.opacity = "1";
+        break;
+      case 'AR NOT SUPPORTED':
+        ARButton.textContent = "Réalité augmentée non supporté";
+        ARButton.style.color = "red";
+        ARButton.style.borderColor = "red";
+        break;
+      case 'AR NOT ALLOWED':
+        ARButton.textContent = "Réalité augmentée non authorisé";
+        ARButton.style.color = "red";
+        ARButton.style.borderColor = "red";
+        break;
+      case 'STOP AR':
+        ARButton.textContent = "Arrêter la réalité augmentée";
+        ARButton.style.color = "red";
+        ARButton.style.borderColor = "red";
+        ARButton.style.opacity = "1";
+        break;
+      default:
+        break;
+    }
+    ARButton.style.left = `50%`
+    ARButton.style.transform = `translate(-50%, -50%)`
+    ARButton.style.fontSize = "1.2rem";
+    ARButton.style.width = "";
+  }
+
   // re dimensionne corectement si changements de taille
   @HostListener('window:resize')
   onWindowResize() {
@@ -307,6 +425,8 @@ export class ArRendererComponent implements AfterViewInit {
 
   @HostListener('window:pointermove', ['$event'])
   onPointerMove(event: PointerEvent) {
+    // empeche le document de récupérer l'événement
+    document.body.style.touchAction = "none";
     // point du click en coordonnés centré, (0,0) est le centre de l'écran
     this.pointerCurrent.setX((event.clientX / this.rendererContainer.nativeElement.clientWidth) * 2 - 1);
     this.pointerCurrent.setY(-(event.clientY / this.rendererContainer.nativeElement.clientHeight) * 2 + 1);
@@ -319,11 +439,35 @@ export class ArRendererComponent implements AfterViewInit {
     // à partir de là, on peut raycast de la caméra à la scène normalement
     this.setRaycast();
     // arrowhelper qui affiche le raycast
-    // if (this.scene.getObjectByName("arrowRC")) {
-    //   this.scene.remove(this.scene.getObjectByName("arrowRC") as THREE.Object3D);
+    // {
+    //   if (this.scene.getObjectByName("arrowRC")) {
+    //     this.scene.remove(this.scene.getObjectByName("arrowRC") as THREE.Object3D);
+    //   }
+    //   const arrowRC = new THREE.ArrowHelper(this.raycast.ray.direction, this.raycast.ray.origin, this.camera.position.distanceTo(this.object.position), 0x0000ff);
+    //   arrowRC.name = 'arrowRC';
+    //   this.scene.add(arrowRC);
     // }
-    // const arrowRC = new THREE.ArrowHelper(this.raycast.ray.direction, this.raycast.ray.origin, this.camera.position.distanceTo(this.object.position), 0x0000ff);
-    // arrowRC.name = 'arrowRC';
+    if (this.raycast.intersectObject(this.object).length && !this.selection) {
+      // on a selectionné la pergola
+      // crée un plan normal au vecteur pour deplacer la pergola parallèlement à l'écran
+      this.selectionPlane = new THREE.Plane(this.raycast.ray.direction.reflect(new THREE.Vector3()), -this.camera.position.distanceTo(this.object.position));
+      this.selection = true;
+
+      // if (this.selectionPlaneHelper) {
+      //   this.scene.remove(this.selectionPlaneHelper);
+      // }
+      // this.selectionPlaneHelper = new THREE.PlaneHelper(this.selectionPlane, 1, 0xff0000);
+      // this.scene.add(this.selectionPlaneHelper)
+    }
+
+    if (this.selection && this.selectionPlane) {
+      // on a un plan et le raycast, on peut savoir ou pointe le raycast sur le plan
+      const pos = this.raycast.ray.intersectPlane(this.selectionPlane, new THREE.Vector3())
+      if (pos) {
+        // on bouge la pergola sur le point d'intersection
+        this.object.position.copy(pos)
+      }
+    }
   }
 
   // on ne touche plus, remttre à 0
@@ -332,6 +476,8 @@ export class ArRendererComponent implements AfterViewInit {
     this.pointerCurrent.set(0, 0);
     this.pointerStart.set(0, 0);
     this.pointerDirection.set(0, 0)
+    this.selectionPlane = null;
+    this.selection = false;
   }
 
   // ajoute soit la pergola, soit un objet créé
@@ -359,18 +505,27 @@ export class ArRendererComponent implements AfterViewInit {
 
       ballGroup.name = "ballGroup"
       const bb = new THREE.Box3().expandByObject(ballGroup);
+      // const bbh = new THREE.Box3Helper(bb, 0xff0000);
+      // bbh.visible = false;
       ballGroup.userData["bb"] = bb;
+      // ballGroup.userData["bbh"] = bbh;
+      // ballGroup.add(bbh);
 
       this.scene.add(ballGroup);
     } else {
       // re dimensionne l'objet et le pose selon cette dimension
       const scaleDown = this.objectScale;
       this.renderGroup.scale.set(scaleDown, scaleDown, scaleDown);
-      // garde une boite de taille de coté si besoin
-      const bb = new THREE.Box3().expandByObject(this.renderGroup);
-      this.renderGroup.userData["bb"] = bb;
-
       this.renderGroup.position.set(0, 0, -scaleDown * 5);
+
+      // garde une boite de taille de côté si besoin
+      const bb = new THREE.Box3().expandByObject(this.renderGroup);
+      // const bbh = new THREE.Box3Helper(bb, 0xff0000);
+      // bbh.visible = false;
+      this.renderGroup.userData["bb"] = bb;
+      // this.renderGroup.userData["bbh"] = bbh;
+
+      // this.renderGroup.add(bbh)
       this.scene.add(this.renderGroup);
     }
   }
