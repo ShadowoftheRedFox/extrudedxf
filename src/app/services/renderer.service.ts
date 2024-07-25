@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Scene, PerspectiveCamera, WebGLRenderer, Mesh, Group, Object3D, Object3DEventMap, Line, Box3Helper } from 'three';
+import { Scene, PerspectiveCamera, WebGLRenderer, Mesh, Group, Object3D, Object3DEventMap, Line, Box3Helper, Texture } from 'three';
 
 export interface LignePerspective {
   id: number,
@@ -27,5 +27,5 @@ export class RendererService {
   constructor() { }
 
   import!: Group<Object3DEventMap>;
-  backgroundImage: any;
+  backgroundImage: Texture | null = null;
 }

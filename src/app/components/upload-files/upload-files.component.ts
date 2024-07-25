@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { RendererService } from '../../services/renderer.service';
-import { Box3, Box3Helper, Color, TextureLoader, Vector3 } from 'three';
+import { Box3, Box3Helper, BoxGeometry, Color, Mesh, MeshBasicMaterial, TextureLoader, Vector3 } from 'three';
 import { ConfigService } from '../../services/config.service';
 
 @Component({
@@ -19,18 +19,23 @@ export class UploadFilesComponent implements OnInit {
   ngOnInit(): void {
     if (this.configService.defaultContent.enabled) {
       const textureLoader = new TextureLoader();
-      // const textureDefault = textureLoader.load(this.configService.defaultContent.background, () => {
-      //   // met l'image en fond
-      //   this.rendererService.backgroundImage = textureDefault;
-      //   this.rendererService.scene.background = textureDefault;
-      //   this.rendererService.scene.backgroundIntensity = 0.5;
-      // });
+      const textureDefault = textureLoader.load(this.configService.defaultContent.background, () => {
+        // met l'image en fond
+        this.rendererService.backgroundImage = textureDefault;
+        this.rendererService.scene.background = textureDefault;
+        this.rendererService.scene.backgroundIntensity = 0.5;
+      });
       // ajoute l'objet
       fetch(this.configService.defaultContent.group).then(res => res.text().then(buff => {
         this.loader.parse(buff as string, '', (glb) => {
           this.rendererService.import = glb.scene;
           this.rendererService.import.name = "Pergola"
-          this.renderGroup.add(this.rendererService.import);
+          // TODO test sans objet pergo
+          const geometry = new BoxGeometry(1, 1, 1);
+          const material = new MeshBasicMaterial({ color: 0x226387 });
+          const cube = new Mesh(geometry, material);
+          this.renderGroup.add(cube);
+          // this.renderGroup.add(this.rendererService.import);
 
           console.log("Groupe: ", this.renderGroup);
 

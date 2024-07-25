@@ -83,16 +83,23 @@ export class RendererComponent implements AfterViewInit {
     lc: number
   } | null = null;
 
+  // matrice de la perspective de la caméra
   perspectiveMatrice = new Matrix4();
+  // matrice de transformation de 2D à 3D
+  transformationMatrice = new Matrix4();
+
+  readonly deg = 180 / Math.PI;
+  readonly rad = Math.PI / 180;
 
   ngAfterViewInit(): void {
     this.initThree();
     this.animate();
+    this.resizeRenderer();
   }
 
   initThree() {
-    const width = this.rendererContainer.nativeElement.clientWidth;
-    const height = this.rendererContainer.nativeElement.clientHeight;
+    const width = innerWidth;
+    const height = innerHeight;
 
     // Création de la scène
     this.scene = new Scene();
@@ -113,8 +120,13 @@ export class RendererComponent implements AfterViewInit {
     this.rendererContainer.nativeElement.appendChild(this.renderer.domElement);
     this.renderer.shadowMap.enabled = true; // activer les ombres
     this.renderer.shadowMap.type = PCFShadowMap; // utiliser un type de map d'ombres douces
+    this.renderer.pixelRatio = window.devicePixelRatio;
 
-    // Création de orbit control
+    // met à la bonne taille si il y a une image
+    this.resizeRenderer();
+
+    // Écout les événements du rendererContainer
+    this.listenEvent();
 
     // Création des lumières réalistiques
     this.renderer.toneMapping = ReinhardToneMapping;
@@ -168,9 +180,9 @@ export class RendererComponent implements AfterViewInit {
     this.scene.add(groundGroup);
     this.scene.add(this.renderGroup);
 
-    console.log("Scene: ", this.scene);
-    console.log("PL: ", this.perspectiveLines);
-    console.log("Matrice: ", this.perspectiveMatrice);
+    // console.log("Scene: ", this.scene);
+    // console.log("PL: ", this.perspectiveLines);
+    // console.log("Matrice: ", this.perspectiveMatrice);
   }
 
   animate() {
@@ -179,7 +191,7 @@ export class RendererComponent implements AfterViewInit {
       requestAnimationFrame(() => this.animate());
     });
 
-    if (this.pergolaNeedUpdate && this.pergola != null) {
+    if (this.pergolaNeedUpdate && this.renderGroup != null) {
       this.pergolaNeedUpdate = false;
       this.calcPositionObjet();
     }
@@ -231,35 +243,70 @@ export class RendererComponent implements AfterViewInit {
     }
   }
 
-  @HostListener("document:mousemove", ['$event'])
-  handleMouseMouve(event: MouseEvent) {
-    this.sourie.setX((event.clientX / this.rendererContainer.nativeElement.clientWidth) * 2 - 1);
-    this.sourie.setY(-(event.clientY / this.rendererContainer.nativeElement.clientHeight) * 2 + 1);
+  listenEvent() {
+    const el = this.renderer.domElement;
+    el.addEventListener("pointermove", (evt) => {
+      let rect = el.getBoundingClientRect();
+      const x = evt.clientX - rect.left;
+      const y = evt.clientY - rect.top;
+      this.sourie.setX((x / el.clientWidth) * 2 - 1);
+      this.sourie.setY(-(y / el.clientHeight) * 2 + 1);
 
-    if (this.sourieClick && this.pointIndexDrag != null && this.perspectiveLines.length > 0 && this.perspectivePlan != null) {
-      // on récupère notre object et notre ligne
-      const obj = this.scene.getObjectById(this.pointIndexDrag.pointId) as Mesh;
-      if (!obj) return;
-      const PL = this.perspectiveLines.filter(pl => { if (pl.id == this.pointIndexDrag?.perspectiveId) { return true; } return false; })[0];
-      // re balance un raycast pour savoir ou mettre l'objet sur le plan
-      this.setRaycast();
-      const pointPlan = new Vector3();
-      this.raycaster.ray.intersectPlane(this.perspectivePlan, pointPlan);
-      obj.position.set(pointPlan.x, pointPlan.y, 0);
-      PL.ligne.removeFromParent();
-      const geometry = new BufferGeometry().setFromPoints([
-        PL.pointA.getWorldPosition(new Vector3()),
-        PL.pointB.getWorldPosition(new Vector3()),
-      ]);
+      if (this.sourieClick && this.pointIndexDrag != null && this.perspectiveLines.length > 0 && this.perspectivePlan != null) {
+        // on récupère notre object et notre ligne
+        const obj = this.scene.getObjectById(this.pointIndexDrag.pointId) as Mesh;
+        if (!obj) return;
+        const PL = this.perspectiveLines.filter(pl => { if (pl.id == this.pointIndexDrag?.perspectiveId) { return true; } return false; })[0];
+        // re balance un raycast pour savoir ou mettre l'objet sur le plan
+        this.setRaycast();
+        const pointPlan = new Vector3();
+        this.raycaster.ray.intersectPlane(this.perspectivePlan, pointPlan);
+        obj.position.set(pointPlan.x, pointPlan.y, 0);
+        PL.ligne.removeFromParent();
+        const geometry = new BufferGeometry().setFromPoints([
+          PL.pointA.getWorldPosition(new Vector3()),
+          PL.pointB.getWorldPosition(new Vector3()),
+        ]);
 
-      const materialLine = new LineBasicMaterial({ color: PL.id % 2 ? 0xff0000 : 0x0000ff });
-      PL.ligne = new Line(geometry, materialLine);
+        const materialLine = new LineBasicMaterial({ color: PL.id % 2 ? 0xff0000 : 0x0000ff });
+        PL.ligne = new Line(geometry, materialLine);
 
-      PL.group.add(PL.ligne);
+        PL.group.add(PL.ligne);
 
-      this.pergolaNeedUpdate = true;
-    }
+        this.pergolaNeedUpdate = true;
+      }
+    });
   }
+
+  // @HostListener("document:mousemove", ['$event'])
+  // handleMouseMouve(event: MouseEvent) {
+  //   this.sourie.setX((event.clientX / this.rendererContainer.nativeElement.clientWidth) * 2 - 1);
+  //   this.sourie.setY(-(event.clientY / this.rendererContainer.nativeElement.clientHeight) * 2 + 1);
+
+  //   if (this.sourieClick && this.pointIndexDrag != null && this.perspectiveLines.length > 0 && this.perspectivePlan != null) {
+  //     // on récupère notre object et notre ligne
+  //     const obj = this.scene.getObjectById(this.pointIndexDrag.pointId) as Mesh;
+  //     if (!obj) return;
+  //     const PL = this.perspectiveLines.filter(pl => { if (pl.id == this.pointIndexDrag?.perspectiveId) { return true; } return false; })[0];
+  //     // re balance un raycast pour savoir ou mettre l'objet sur le plan
+  //     this.setRaycast();
+  //     const pointPlan = new Vector3();
+  //     this.raycaster.ray.intersectPlane(this.perspectivePlan, pointPlan);
+  //     obj.position.set(pointPlan.x, pointPlan.y, 0);
+  //     PL.ligne.removeFromParent();
+  //     const geometry = new BufferGeometry().setFromPoints([
+  //       PL.pointA.getWorldPosition(new Vector3()),
+  //       PL.pointB.getWorldPosition(new Vector3()),
+  //     ]);
+
+  //     const materialLine = new LineBasicMaterial({ color: PL.id % 2 ? 0xff0000 : 0x0000ff });
+  //     PL.ligne = new Line(geometry, materialLine);
+
+  //     PL.group.add(PL.ligne);
+
+  //     this.pergolaNeedUpdate = true;
+  //   }
+  // }
   @HostListener("document:mousedown", ['$event'])
   handleMouseDown(event: MouseEvent) {
     this.sourieClick = true;
@@ -273,14 +320,32 @@ export class RendererComponent implements AfterViewInit {
 
   @HostListener('window:resize')
   onWindowResize() {
-    // Mettez à jour la taille du renderer
-    const pixelRatio = window.devicePixelRatio;
-    const width = Math.floor(this.rendererContainer.nativeElement.clientWidth * pixelRatio);
-    const height = Math.floor(this.rendererContainer.nativeElement.clientHeight * pixelRatio);
-    this.renderer.setSize(width, height, true);
+    this.resizeRenderer();
+  }
 
+  resizeRenderer() {
+    // Mettre à jour à la taille de l'image si elle est là
+    const width = innerWidth;
+    const height = innerHeight;
+    let h = 0;
+    let w = 0;
+    if (this.service.backgroundImage && this.service.backgroundImage.image) {
+      const image = this.service.backgroundImage.image;
+
+      var hRatio = width / image.width;
+      var vRatio = height / image.height;
+      var ratio = Math.min(hRatio, vRatio);
+      h = image.height * ratio;
+      w = image.width * ratio;
+    } else {
+      // Mettre à jour à la taille max de la fenêtre
+      h = width;
+      w = height;
+    }
+
+    this.renderer.setSize(w, h, true);
     // Mettez à jour l'aspect ratio de la caméra
-    this.camera.aspect = width / height;
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
 
@@ -400,7 +465,7 @@ export class RendererComponent implements AfterViewInit {
 
   drawFaceBox() {
     // ajoute une nouvelle boxPergo à la scene
-    if (!this.boxPergo && this.pergola != null) {
+    if (!this.boxPergo && this.renderGroup != null) {
       const bounds = new Box3().setFromObject(this.renderGroup);
       const geometry = new BoxGeometry().scale(bounds.max.x, bounds.max.y, bounds.max.z);
       // pour voir la face des deux cotés: DoubleSide
@@ -422,7 +487,7 @@ export class RendererComponent implements AfterViewInit {
 
       // modifie ces propriétés pour "coller" a la pergola
       this.boxPergo.position.copy(this.renderGroup.position).add(addedVect.divideScalar(2));
-      this.pergola.add(this.boxPergo);
+      this.renderGroup.add(this.boxPergo);
     }
     // légèrement plus gros pour dépasser pour éviter le z-fighting
     this.boxPergo.scale.copy(this.renderGroup.scale).multiplyScalar(1.001);
@@ -560,8 +625,8 @@ export class RendererComponent implements AfterViewInit {
   // pour le reproduire dans la scene, ne reste plus qu'à bouger l'objet
   // voir: https://stackoverflow.com/questions/53289330/transformation-of-3d-objects-related-to-vanishing-points-and-horizon-line
   calcPositionObjet() {
-    const height = this.rendererContainer.nativeElement.clientHeight;
-    const width = this.rendererContainer.nativeElement.clientWidth;
+    const width = this.renderer.domElement.width;
+    const height = this.renderer.domElement.height;
     // on récupère les deux dimensions de perspective
     let PLd = this.perspectiveLines.filter(pl => { return pl.axe == "profondeur" });
     let PLg = this.perspectiveLines.filter(pl => { return pl.axe == "longueur" });
@@ -643,12 +708,19 @@ export class RendererComponent implements AfterViewInit {
     if (!this.scene.background) {
       throw new Error("besoin de l'image pour calculer une perspective");
     }
-    const FOV = 90.0 * width / this.horizon.lengthScreen;
+    const FOV = 90.0 * this.deg * width / this.horizon.lengthScreen;
 
     //calcul du znear
     const znear = Math.abs(1 / Math.tan(0.5 * FOV));
     // calcul du zfar
     const zfar = 1000 * znear;
+
+    // deg = 180.0/M_PI; rad = M_PI/180.0
+    // deg: rad -> deg
+    // rad: deg -> rad
+    // fovx*(height/width)*rad, height/width, znear, zfar
+    // matrice de la perspective de la caméra de l'image
+    this.perspectiveMatrice = this.computePerspective(FOV * (height / width) * this.rad, height / width, znear, zfar);
 
     // récupère le ratio de profondeur, avec pour étalon la ligne centrale lc
     const ZRatios = this.getZRatio(TrapD, TrapG);
@@ -672,18 +744,48 @@ export class RendererComponent implements AfterViewInit {
       // profondeur au milieu du segment de droite
       const zd = znear * ZRatios.ld / l;
 
+      // TODO calcule finale matrice
       // Enfin, avec toutes ces infos, on peut faire une matrice de transformation qui va mettre un objet dans la perspective
-      this.perspectiveMatrice = new Matrix4(
-        CentreTrapG.x, CentreSegment.x, CentreTrapD.x, 0,
-        CentreTrapG.y, CentreSegment.y, CentreTrapD.y, 0,
-        zg/*       */, zc/*         */, zd/*       */, 0,
-        1/*        */, 1/*          */, 1/*        */, 1
+      /*
+      Grâce au post de StackOverflow, on sait que la position du batiment en 2D est: Vector4(x',y',z',w'), avec x = x'/z' et y = y'/z'
+      On sait donc que sa position en 3D est égale à: perspectiveMatrice^-1 * Vector4(x',y',z',w')
+      */
+      /*
+      GOAL: Compréhension de la fonction scr2world
+      En paramètre, w est où sera copier le résulat, et s est la source
+      L'appel se fait à la ligne 224: for (i=_p3D_O;i<=_p3D_Z;i+=3) scr2world(p3D+i,p3D+i);
+      per est sa matrice 4x4 qui est notre équivalent perspectiveMatrice
+      Il modifie chaque vecteur (x,y,z) tel que:
+      w.x = -(s.x*s.z)/
+      w.y = -(s.x*s.z)/
+      w.z = s.z
+      */
+      /*
+      TODO: finir la matrice
+      si tout est bon, son point X est notre CentreTrapG
+      si tout est bon, son point Z est notre CentreTrapD
+      si tout est bon, son point Y et O est notre CentreSegment
+
+      je me suis arrêter à l aboucle ligne 224
+      il a des donnés dans p2D (si j'ai bien compris, les coordonés 2D des points calculés)
+      il remplis les futurs position 3D entre les lignes 197 et 200
+      puis avec la boucle ligne 224, il fait les calculs avec le z trouvé
+
+      on aura donc nos points des centres avec un profondeur
+      -> appliqué cette profondeur à l'objet selon sa distance du point centrale
+
+      Je m'explique: on aura une profondeur selon X, Y et Z, trouvé à partir des points centraux
+      Si l'object se trouve au CentreSegment, alors il a la taille originale
+      Si il se trouve au CentreGauche, alors il a la profondeur de CentreGauche
+      Mais si il est encore plus à gauche, alors c'est un ration de la distance CentreGauche/CentreSegment
+      */
+      this.transformationMatrice = new Matrix4(
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
       );
-      // Position Objet * matrice = resultat
-      // Finalement,  Position Object x = resultat.x / resultat.z
-      //              Position Object y = resultat.y / resultat.z
-      // sur l'écran, <-1, 1>
-      this.renderGroup.scale.set(zg, zc, zd);
+
       this.changePositionObjet(this.perspectiveMatrice);
     }
 
@@ -724,14 +826,22 @@ export class RendererComponent implements AfterViewInit {
     }
   }
 
+  computePerspective(fovy: number, aspect: number, znear: number, zfar: number): Matrix4 {
+    const f = 1 / Math.tan(0.5 * fovy * this.deg * aspect);
+    const z = (zfar + znear) / (znear - zfar);
+    const z_ = (2 * zfar * znear) / (znear - zfar);
+    const fa = f * aspect;
+    return new Matrix4(
+      f, 0, 0, 0,
+      0, fa, 0, 0,
+      0, 0, z, -1,
+      0, 0, z_, 0
+    );
+  }
+
   changePositionObjet(matrice: Matrix4) {
-    // if (!this.renderGroup) return;
-    // console.table([matrice.elements.slice(0, 4), matrice.elements.slice(4, 8), matrice.elements.slice(8, 12), matrice.elements.slice(12, 16)])
-    // this.renderGroup.scale.set(1, 2, 1);
-    // this.renderGroup.position.set(0, 0, 0);
-    // this.renderGroup.scale.set(1, 1, 1);
-    // const center = new Vector3();
-    // this.drawArrow(this.renderGroup.position, center, { unique: true, id: 0xff2222, arrow: false, length: center.distanceTo(this.renderGroup.position) });
+    if (!this.renderGroup) return;
+
   }
 
   plane(QuadCorners: Vector3[], name: "planeD" | "planeG" = "planeD") {
